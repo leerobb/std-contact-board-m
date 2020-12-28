@@ -1,0 +1,267 @@
+﻿@model IEnumerable<STD_Contact_Board.Models.Contact>
+@using System.Activities.Validation
+@using Kendo.Mvc.UI
+@using STD_Contact_Board.Models
+@{
+    ViewBag.Title = "Contact";
+}
+
+<h2>Contact</h2>
+
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/js/kendo.all.min.js"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/styles/kendo.common.min.css"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/js/jszip.min.js"></script>
+<link rel="stylesheet" href="styles/kendo.common.min.css" />
+<link rel="stylesheet" href="styles/kendo.default.min.css" />
+<link rel="stylesheet" href="styles/kendo.default.mobile.min.css" />
+
+<script src="js/jquery.min.js"></script>
+
+
+<script src="js/kendo.all.min.js"></script>
+
+
+
+<style>
+    td[role=gridcell], .k-header {
+        white-space: normal !important;
+    }
+
+    .dropdown-std {
+        width: 50%;
+        float: left;
+        text-align: center;
+    }
+
+    .grid-title {
+        width: 100%;
+        text-align: center;
+    }
+
+    h4 {
+        text-align: left;
+        font-size: 30px;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container">
+    <div class="dropdown-std">
+        <h3>Select Jurisdiction</h3>
+        <input id="jurisdictionDropdown" />
+    </div>
+    <div class="dropdown-std">
+        <h3>Select Roles</h3>
+        <input id="roleDropdown" />
+    </div>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <div class="grid-title">
+        <h3>Jurisdiction Details</h3>
+    </div>
+    <div id="jurisGrid"></div>
+    <br>
+    <br>
+    <br>
+    <br>
+    <div class="grid-title">
+        <h3>Contact Details</h3>
+    </div>
+    @if (User.IsInRole("EditAllContacts"))
+    {
+        @(Html.Kendo().Grid<Contact>()
+            .Name("contactGrid")
+            .Columns(columns =>
+            {
+                columns.Bound(p => p.Name);
+                columns.Bound(p => p.Email);
+                columns.Bound(p => p.Phone);
+                columns.Bound(p => p.Hours);
+                columns.Bound(p => p.Notes);
+                columns.ForeignKey(p => p.Jurisdiction_Id, (System.Collections.IEnumerable)ViewData["jurisdictions"], "Id", "JurisdictionName").Title("Jurisdiction");
+                columns.ForeignKey(p => p.Role_Id, (System.Collections.IEnumerable)ViewData["roles"], "Id", "Name").Title("Role");
+                columns.Command(command => { command.Edit(); command.Destroy(); }).Width(250);
+            })
+            .ToolBar(toolbar => toolbar.Create())
+            .Editable(editable => editable.Mode(GridEditMode.InLine).ConfirmDelete("Delete").DisplayDeleteConfirmation("Are You Sure?"))
+            .Pageable()
+            .Sortable()
+            .Scrollable()
+            .HtmlAttributes(new { style = "height:550px;" })
+            .DataSource(dataSource => dataSource
+                .Ajax()
+                .PageSize(20)
+                .Events(events => events.Error("error_handler"))
+                .Model(model => model.Id(p => p.Id))
+                .Create(update => update.Action("EditingInline_Create", "Contact"))
+                .Read(read => read.Action("GetContact", "Contact").Data("DropDownValues"))
+                .Update(update => update.Action("EditingInline_Update", "Contact"))
+                .Destroy(update => update.Action("EditingInline_Destroy", "Contact"))
+            )
+)
+    }
+    else
+    {
+        @(Html.Kendo().Grid<Contact>()
+            .Name("contactGrid")
+            .Columns(columns =>
+            {
+                columns.Bound(p => p.Name);
+                columns.Bound(p => p.Email);
+                columns.Bound(p => p.Phone);
+                columns.Bound(p => p.Hours);
+                columns.Bound(p => p.Notes);
+                columns.ForeignKey(p => p.Jurisdiction_Id, (System.Collections.IEnumerable)ViewData["jurisdictions"], "Id", "JurisdictionName").Title("Jurisdiction");
+                columns.ForeignKey(p => p.Role_Id, (System.Collections.IEnumerable)ViewData["roles"], "Id", "Name").Title("Role");
+                //columns.Command(command => { command.Edit(); command.Destroy(); }).Width(250);
+            })
+            //.ToolBar(toolbar => toolbar.Create())
+            //.Editable(editable => editable.Mode(GridEditMode.InLine).ConfirmDelete("Delete").DisplayDeleteConfirmation("Are You Sure?"))
+            .Pageable()
+            .Sortable()
+            .Scrollable()
+            .HtmlAttributes(new { style = "height:550px;" })
+            .DataSource(dataSource => dataSource
+                .Ajax()
+                .PageSize(20)
+                .Events(events => events.Error("error_handler"))
+                .Model(model => model.Id(p => p.Id))
+                //.Create(update => update.Action("EditingInline_Create", "Contact"))
+                .Read(read => read.Action("GetContact", "Contact").Data("DropDownValues"))
+                //.Update(update => update.Action("EditingInline_Update", "Contact"))
+                //.Destroy(update => update.Action("EditingInline_Destroy", "Contact"))
+            )
+)
+    }
+
+    <script type="text/javascript">
+        function error_handler(e) {
+            if (e.errors) {
+                var message = "Errors:\n";
+                $.each(e.errors, function (key, value) {
+                    if ('errors' in value) {
+                        $.each(value.errors, function () {
+                            message += this + "\n";
+                        });
+                    }
+                });
+                alert(message);
+            }
+        }
+
+
+    </script>
+</div>
+
+<script>
+       $(document).ready(function () {
+
+           //JURISDICTION DROPDOWN
+           $("#jurisdictionDropdown").kendoDropDownList({
+               filter: "contains",
+               change: onChange,
+               dataTextField: "JurisdictionName",
+               dataValueField: "Id",
+               dataSource: {
+                   type: "aspnetmvc-ajax",
+                   serverFiltering: false,
+                   transport: {
+                       read: {
+                           dataType: "json",
+                           url: '@Url.Action("GetStates", "DropDownList")'
+                       }
+                   }
+               }
+           });
+
+           //ROLES DROPDOWN
+           $("#roleDropdown").kendoDropDownList({
+               dataTextField: "Name",
+               dataValueField: "Id",
+               dataSource: {
+                   type: "aspnetmvc-ajax",
+                   transport: {
+                       read: {
+                           dataType: "json",
+                           url: '@Url.Action("GetRoles", "DropDownList")'
+                       }
+                   }
+               }
+           });
+
+           $("#jurisGrid").kendoGrid({
+               dataSource: {
+                   //MUST HAVE 'AJAX' LINE BELOW
+                   type: "aspnetmvc-ajax",
+                   transport: {
+                       read: {
+                           url: '@Url.Action("GetJurisdiction", "Jurisdiction")',
+                           dataType: "json",
+                           data: function () {
+                               return {
+                                   jurisId: $("#jurisdictionDropdown").val()
+                               };
+                           }
+                       }
+                   },
+                   schema: {
+                       //MUST HAVE 'Data' LINE BELOW
+                       data: "Data",
+                       model: {
+                           fields: {
+                               Id: { type: "number" },
+                               JurisdictionName: { type: "string" },
+                               AgencyName: { type: "string" },
+                               MainAddress: { type: "string" },
+                               Phone: { type: "string" },
+                               Fax: { type: "string" }
+                           }
+                       }
+                   }
+               },
+               height: "102px",
+               filterable: false,
+               sortable: false,
+               pageable: {
+                   pageSize: 10000,
+                   alwaysVisible: false
+               },
+               columns: [
+                   { field: "JurisdictionName", title: "Jurisdiction", width: "200px" },
+                   { field: "AgencyName", title: "Agency" },
+                   { field: "MainAddress", title: "Address" },
+                   { field: "Phone", width: "125px"},
+                   { field: "Fax", width: "125px" },
+               ]
+           });         
+
+
+       });
+
+        //Change Columns names to State ReportTypes
+        function onChange() {
+            var grid = $("#jurisGrid").data("kendoGrid");
+            grid.dataSource.read();
+
+            var contactGrid = $("#contactGrid").data("kendoGrid");
+            contactGrid.dataSource.read();
+
+    }
+
+    function DropDownValues() {
+        return {
+            jurisId: $("#jurisdictionDropdown").val(),
+            roleId: $("#roleDropdown").val()
+        }
+    };
+
+       //Make Button Turn Active
+       $("#contacts").addClass("active");
+</script>
+

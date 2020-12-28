@@ -1,0 +1,105 @@
+﻿@model IEnumerable<STD_Contact_Board.Models.Jurisdiction>
+@using System.Activities.Validation
+@using Kendo.Mvc.UI
+@using Kendo.Mvc
+@using STD_Contact_Board.Models
+@{
+    ViewBag.Title = "MyJurisdiction";
+}
+
+<h2>My Jurisdiction</h2>
+
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/js/kendo.all.min.js"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/styles/kendo.common.min.css"></script>
+<script src="https://kendo.cdn.telerik.com/2020.1.219/js/jszip.min.js"></script>
+<link rel="stylesheet" href="styles/kendo.common.min.css" />
+<link rel="stylesheet" href="styles/kendo.default.min.css" />
+<link rel="stylesheet" href="styles/kendo.default.mobile.min.css" />
+
+<script src="js/jquery.min.js"></script>
+
+
+<script src="js/kendo.all.min.js"></script>
+
+@(Html.Kendo().Grid<Jurisdiction>()
+    .Name("jurisGrid")
+    .Columns(columns =>
+    {
+        columns.Bound(p => p.JurisdictionName);
+        columns.Bound(p => p.AgencyName);
+        columns.Bound(p => p.MainAddress);
+        columns.Bound(p => p.Phone);
+        columns.Bound(p => p.Fax);
+        columns.Command(command => { command.Edit();  }).Width(250);
+    })    
+    .Editable(editable => editable.Mode(GridEditMode.InLine))
+    .Pageable()
+    .Sortable()
+    .Scrollable()
+    .HtmlAttributes(new { style = "height:250px;" })
+    .DataSource(dataSource => dataSource
+        .Ajax()
+        .PageSize(20)
+        .Events(events => events.Error("error_handler"))
+        .Model(model => model.Id(p => p.Id))       
+        .Read(read => read.Action("EditingInline_Read2", "Jurisdiction"))
+        .Update(update => update.Action("EditingInline_Update", "Jurisdiction"))  
+    )
+)
+<br>
+<br>
+<br>
+<br>
+@(Html.Kendo().Grid<Contact>()
+    .Name("contactGrid")
+    .Columns(columns =>
+    {
+        columns.Bound(p => p.Name);
+        columns.Bound(p => p.Email);
+        columns.Bound(p => p.Hours);
+        columns.Bound(p => p.Phone);
+        columns.Bound(p => p.Notes);
+        columns.ForeignKey(p => p.Role_Id, (System.Collections.IEnumerable)ViewData["roles"], "Id", "Name").Title("Role");
+        columns.Bound(p => p.Fax);
+
+        columns.Command(command => { command.Edit(); command.Destroy(); }).Width(250);
+    })
+    .ToolBar(toolbar => toolbar.Create())
+    .Editable(editable => editable.Mode(GridEditMode.InLine).ConfirmDelete("Are You Sure?").DisplayDeleteConfirmation("Test"))
+    .Pageable()
+    .Sortable()
+    .Scrollable()
+    .HtmlAttributes(new { style = "height:450px;" })
+    .DataSource(dataSource => dataSource
+        .Ajax()
+        .PageSize(20)
+        .Events(events => events.Error("error_handler"))
+              .Model(model =>
+              {
+                  model.Id(p => p.Id);            
+                  model.Field(p => p.Role_Id).DefaultValue(1);
+              })
+        .Create(update => update.Action("MyJuris_Create", "Contact"))
+        .Read(read => read.Action("ReadAllContact", "Contact"))
+        .Update(update => update.Action("EditingInline_Update", "Contact"))
+        .Destroy(update => update.Action("EditingInline_Destroy", "Contact"))
+    )
+)
+
+<script type="text/javascript">
+    function error_handler(e) {
+        if (e.errors) {
+            var message = "Errors:\n";
+            $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                    $.each(value.errors, function () {
+                        message += this + "\n";
+                    });
+                }
+            });
+            alert(message);
+        }
+    }
+</script>
